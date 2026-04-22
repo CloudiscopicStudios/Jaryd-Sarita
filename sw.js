@@ -1,5 +1,6 @@
-const CACHE = 'wedding-cam-v1';
-const PRECACHE = ['/camera', '/shutter-sound.mp3'];
+const CACHE = 'wedding-cam-v2';
+const BASE = '/Jaryd-Sarita';
+const PRECACHE = [`${BASE}/camera`, `${BASE}/shutter-sound.mp3`];
 
 self.addEventListener('install', (e) => {
   e.waitUntil(
@@ -18,7 +19,6 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  // Only cache GET requests; pass everything else through
   if (e.request.method !== 'GET') return;
   e.respondWith(
     fetch(e.request).catch(() => caches.match(e.request))
