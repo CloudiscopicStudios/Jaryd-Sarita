@@ -12,9 +12,8 @@ export default function DisposableCamera() {
   const [qrUrl, setQrUrl] = useState('');
 
   useEffect(() => {
-    // Generate QR code URL
-    const baseUrl = window.location.origin;
-    setQrUrl(`${baseUrl}/camera`);
+    // Generate QR code URL — works for both root and sub-path deployments
+    setQrUrl(`${window.location.origin}${import.meta.env.BASE_URL}camera`);
   }, []);
 
   useEffect(() => {
@@ -154,7 +153,7 @@ export default function DisposableCamera() {
 
             <div className="reveal-item pt-4">
               <a 
-                href="/camera" 
+                href={`${import.meta.env.BASE_URL}camera`}
                 target="_blank"
                 rel="noopener noreferrer"
               >
