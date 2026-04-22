@@ -1,0 +1,20 @@
+{
+  "name": "Jaryd & Sarita Wedding Camera",
+  "short_name": "WeddingCam",
+  "description": "Capture candid moments from Jaryd & Sarita's wedding day",
+  "start_url": "/camera",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/camera-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["photography", "social"],
+  "screenshots": []
+}

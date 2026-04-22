@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#0a0a0a" rx="112"/>
+  <!-- Camera body -->
+  <rect x="64" y="168" width="384" height="264" rx="32" fill="#1a1a1a"/>
+  <rect x="64" y="168" width="384" height="264" rx="32" fill="none" stroke="#F59E0B" stroke-width="3" opacity="0.6"/>
+  <!-- Viewfinder bump -->
+  <rect x="180" y="112" width="152" height="64" rx="16" fill="#1a1a1a"/>
+  <rect x="180" y="112" width="152" height="64" rx="16" fill="none" stroke="#F59E0B" stroke-width="2" opacity="0.4"/>
+  <!-- Lens outer ring -->
+  <circle cx="256" cy="300" r="96" fill="#111"/>
+  <circle cx="256" cy="300" r="96" fill="none" stroke="#F59E0B" stroke-width="3" opacity="0.7"/>
+  <!-- Lens middle -->
+  <circle cx="256" cy="300" r="72" fill="#0d0d0d"/>
+  <circle cx="256" cy="300" r="72" fill="none" stroke="#F59E0B" stroke-width="1.5" opacity="0.4"/>
+  <!-- Lens glass -->
+  <circle cx="256" cy="300" r="52" fill="#1a1a2e"/>
+  <circle cx="256" cy="300" r="36" fill="#0f0f24"/>
+  <!-- Lens reflection -->
+  <ellipse cx="240" cy="284" rx="12" ry="8" fill="#F59E0B" opacity="0.15"/>
+  <!-- Flash -->
+  <rect x="360" y="192" width="56" height="36" rx="10" fill="#111"/>
+  <rect x="360" y="192" width="56" height="36" rx="10" fill="none" stroke="#F59E0B" stroke-width="1.5" opacity="0.4"/>
+  <!-- Shutter button -->
+  <circle cx="420" cy="176" r="20" fill="#111" stroke="#F59E0B" stroke-width="1.5" opacity="stroke-opacity: 0.5"/>
+  <!-- Film indicator dots -->
+  <circle cx="112" cy="210" r="6" fill="#F59E0B" opacity="0.5"/>
+  <circle cx="132" cy="210" r="6" fill="#F59E0B" opacity="0.5"/>
+  <circle cx="152" cy="210" r="6" fill="#F59E0B" opacity="0.3"/>
+</svg>

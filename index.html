@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Jaryd & Sarita Wedding</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="/Jaryd-Sarita/manifest.json" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <!-- iOS PWA -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="WeddingCam" />
+    <link rel="apple-touch-icon" href="/Jaryd-Sarita/camera-icon.svg" />
+    <script type="module" crossorigin src="/Jaryd-Sarita/assets/index-CYZvErHj.js"></script>
+    <link rel="stylesheet" crossorigin href="/Jaryd-Sarita/assets/index-C6lyti6K.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Decode SPA redirect from 404.html
+      (function(l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function(s) {
+            return s.replace(/~and~/g, '&');
+          });
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded[0] +
+            (decoded[1] ? '?' + decoded[1] : '') + l.hash
+          );
+        }
+      }(window.location));
+    </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js').catch(() => {});
+        });
+      }
+    </script>
+  </body>
+</html>
