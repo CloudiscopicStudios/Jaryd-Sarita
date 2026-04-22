@@ -7,6 +7,8 @@ const GOOGLE_DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 export interface GoogleDriveConfig {
   accessToken: string;
   folderId: string | null;
+  expiresAt: number;   // ms timestamp
+  userEmail?: string;
 }
 
 export interface UploadResult {
@@ -43,6 +45,19 @@ class GoogleDriveService {
   isConfigured(): boolean {
     const config = this.getConfig();
     return !!(config?.accessToken && config?.folderId);
+  }
+
+  isTokenExpired(): boolean {
+    const config = this.getConfig();
+    if (!config?.expiresAt) return false;
+    return Date.now() >= config.expiresAt;
+  }
+
+  // True when token expires within the next 5 minutes
+  needsRefresh(): boolean {
+    const config = this.getConfig();
+    if (!config?.expiresAt) return false;
+    return Date.now() >= config.expiresAt - 5 * 60 * 1000;
   }
 
   // Create a folder for wedding photos

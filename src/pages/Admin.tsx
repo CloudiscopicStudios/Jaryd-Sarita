@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { GoogleOAuthProvider, useGoogleLogin, googleLogout } from '@react-oauth/google';
 import {
   Folder, CheckCircle, AlertCircle, LogOut, Image,
@@ -20,33 +20,85 @@ function AdminContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const config = googleDriveService.getConfig();
-    if (config?.accessToken && config?.folderId) {
-      setFolderId(config.folderId);
-      setIsAuthenticated(true);
-      loadFiles();
-    }
-  }, []);
+  const [tokenStatus, setTokenStatus] = useState<'ok' | 'refreshing' | 'expired'>('ok');
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 6000);
   };
 
-  // useGoogleLogin gives us an actual OAuth access token usable with Drive API
+  const saveToken = useCallback((tokenResponse: any, existingFolderId?: string) => {
+    const token = tokenResponse.access_token;
+    const expiresIn = tokenResponse.expires_in ?? 3600; // seconds
+    const expiresAt = Date.now() + expiresIn * 1000;
+    const config = googleDriveService.getConfig();
+    googleDriveService.setConfig({
+      accessToken: token,
+      folderId: existingFolderId ?? config?.folderId ?? null,
+      expiresAt,
+      userEmail: tokenResponse.email,
+    });
+    setIsAuthenticated(true);
+    setTokenStatus('ok');
+
+    // Schedule a silent refresh 5 min before expiry
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    const delay = Math.max((expiresIn - 300) * 1000, 0);
+    refreshTimerRef.current = setTimeout(() => silentLogin(), delay);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Silent re-auth — no popup, uses existing Google session
+  const silentLogin = useGoogleLogin({
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    prompt: 'none',
+    onSuccess: (tokenResponse) => {
+      saveToken(tokenResponse);
+      setTokenStatus('ok');
+    },
+    onError: () => {
+      // Silent failed — user's Google session expired, need manual login
+      setTokenStatus('expired');
+      setIsAuthenticated(false);
+    },
+  });
+
+  // Full login with consent popup
   const login = useGoogleLogin({
     scope: 'https://www.googleapis.com/auth/drive.file',
     onSuccess: (tokenResponse) => {
-      const token = tokenResponse.access_token;
-      googleDriveService.setConfig({ accessToken: token, folderId: folderId || null });
-      setIsAuthenticated(true);
+      saveToken(tokenResponse, folderId || undefined);
       showMessage('success', 'Connected to Google Drive!');
-      if (folderId) loadFiles();
+      const config = googleDriveService.getConfig();
+      if (config?.folderId) { setFolderId(config.folderId); loadFiles(); }
     },
     onError: () => showMessage('error', 'Login failed. Please try again.'),
   });
+
+  // On mount: restore session or attempt silent re-auth
+  useEffect(() => {
+    const config = googleDriveService.getConfig();
+    if (!config?.accessToken) return;
+
+    if (config.folderId) setFolderId(config.folderId);
+
+    if (googleDriveService.needsRefresh()) {
+      // Token expired or expiring — try silent refresh
+      setTokenStatus('refreshing');
+      silentLogin();
+    } else {
+      setIsAuthenticated(true);
+      if (config.folderId) loadFiles();
+
+      // Schedule refresh for when it will expire
+      if (config.expiresAt) {
+        const delay = Math.max(config.expiresAt - Date.now() - 5 * 60 * 1000, 0);
+        refreshTimerRef.current = setTimeout(() => silentLogin(), delay);
+      }
+    }
+
+    return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLogout = () => {
     googleLogout();
@@ -167,12 +219,16 @@ function AdminContent() {
             {/* Status */}
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-white rounded-xl p-5 shadow-sm border border-wedding-accent/10 flex items-center gap-3">
-                <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle className="w-5 h-5 text-green-600" />
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center ${tokenStatus === 'refreshing' ? 'bg-amber-100' : 'bg-green-100'}`}>
+                  {tokenStatus === 'refreshing'
+                    ? <RefreshCw className="w-5 h-5 text-amber-600 animate-spin" />
+                    : <CheckCircle className="w-5 h-5 text-green-600" />}
                 </div>
                 <div>
                   <p className="font-sans text-xs text-wedding-muted">Google Account</p>
-                  <p className="font-sans font-medium text-wedding-text text-sm">Connected</p>
+                  <p className="font-sans font-medium text-wedding-text text-sm">
+                    {tokenStatus === 'refreshing' ? 'Refreshing…' : 'Connected ✓'}
+                  </p>
                 </div>
               </div>
               <div className="bg-white rounded-xl p-5 shadow-sm border border-wedding-accent/10 flex items-center gap-3">
@@ -207,12 +263,17 @@ function AdminContent() {
               </div>
             )}
 
-            {/* Token expiry warning */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <p className="font-sans text-sm text-amber-800">
-                <strong>⚠️ Important:</strong> Google access tokens expire after 1 hour. On the wedding day, visit this admin page and sign in again before guests start scanning the QR code.
-              </p>
-            </div>
+            {/* Token status — only show if there's a problem */}
+            {tokenStatus === 'expired' && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
+                <p className="font-sans text-sm text-amber-800">
+                  Session expired — sign in again to keep uploads working.
+                </p>
+                <Button onClick={() => login()} size="sm" className="btn-wedding whitespace-nowrap">
+                  Sign in again
+                </Button>
+              </div>
+            )}
 
             {/* Files */}
             {folderId && (
