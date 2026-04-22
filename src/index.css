@@ -1,0 +1,249 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@300;400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 36 20% 96%;
+    --foreground: 24 14% 26%;
+    --card: 36 20% 96%;
+    --card-foreground: 24 14% 26%;
+    --popover: 36 20% 96%;
+    --popover-foreground: 24 14% 26%;
+    --primary: 340 28% 72%;
+    --primary-foreground: 36 20% 96%;
+    --secondary: 138 18% 92%;
+    --secondary-foreground: 24 14% 26%;
+    --muted: 36 15% 90%;
+    --muted-foreground: 24 10% 44%;
+    --accent: 340 28% 72%;
+    --accent-foreground: 36 20% 96%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 24 14% 85%;
+    --input: 24 14% 85%;
+    --ring: 340 28% 72%;
+    --radius: 0.5rem;
+    
+    /* Custom wedding colors */
+    --wedding-bg: #F6F4F2;
+    --wedding-bg-sage: #E9F0EC;
+    --wedding-accent: #D8A7B4;
+    --wedding-text: #4B3F39;
+    --wedding-text-muted: #7A6B63;
+    --wedding-sage: #A8C4A0;
+    --wedding-rose: #D8A7B4;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-[var(--wedding-bg)] text-[var(--wedding-text)] antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 500;
+  }
+}
+
+@layer components {
+  .font-serif {
+    font-family: 'Cormorant Garamond', serif;
+  }
+  
+  .font-sans {
+    font-family: 'Inter', sans-serif;
+  }
+  
+  .text-wedding-text {
+    color: var(--wedding-text);
+  }
+  
+  .text-wedding-muted {
+    color: var(--wedding-text-muted);
+  }
+  
+  .text-wedding-accent {
+    color: var(--wedding-accent);
+  }
+  
+  .bg-wedding-bg {
+    background-color: var(--wedding-bg);
+  }
+  
+  .bg-wedding-sage {
+    background-color: var(--wedding-bg-sage);
+  }
+  
+  .bg-wedding-accent {
+    background-color: var(--wedding-accent);
+  }
+  
+  .border-wedding-accent {
+    border-color: var(--wedding-accent);
+  }
+  
+  /* Leaf animation */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-20px) rotate(5deg);
+    }
+  }
+  
+  @keyframes drift {
+    0% {
+      transform: translateX(-10%) rotate(0deg);
+    }
+    100% {
+      transform: translateX(110vw) rotate(360deg);
+    }
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  .animate-drift {
+    animation: drift 25s linear infinite;
+  }
+  
+  /* Watercolor breathing effect */
+  @keyframes breathe {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.03);
+    }
+  }
+  
+  .animate-breathe {
+    animation: breathe 12s ease-in-out infinite;
+  }
+  
+  /* Scroll hint bounce */
+  @keyframes bounce-subtle {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(8px);
+    }
+  }
+  
+  .animate-bounce-subtle {
+    animation: bounce-subtle 2s ease-in-out infinite;
+  }
+  
+  /* Grain overlay */
+  .grain-overlay {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.04;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  }
+  
+  /* Button hover effect */
+  .btn-wedding {
+    @apply px-8 py-3 bg-wedding-accent text-white rounded-full font-medium transition-all duration-300;
+  }
+  
+  .btn-wedding:hover {
+    @apply transform -translate-y-0.5 scale-[1.02] shadow-lg;
+  }
+  
+  /* Card hover effect */
+  .card-wedding {
+    @apply transition-all duration-300;
+  }
+  
+  .card-wedding:hover {
+    @apply transform scale-[1.02];
+    box-shadow: 0 18px 50px rgba(75, 63, 57, 0.1);
+  }
+  
+  /* Timeline line */
+  .timeline-line {
+    @apply absolute left-[22%] top-0 w-px bg-gradient-to-b from-transparent via-wedding-accent/40 to-transparent;
+  }
+  
+  /* Form input styling */
+  .input-wedding {
+    @apply w-full px-4 py-3 bg-white/80 border rounded-lg focus:outline-none focus:ring-2 transition-all duration-300;
+    border-color: rgba(75, 63, 57, 0.1);
+  }
+  
+  .input-wedding:focus {
+    --tw-ring-color: rgba(216, 167, 180, 0.5);
+  }
+  
+  /* Tamil decorative elements */
+  .tamil-border {
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M20 0C9 0 0 9 0 20s9 20 20 20 20-9 20-20S31 0 20 0zm0 36c-8.8 0-16-7.2-16-16S11.2 4 20 4s16 7.2 16 16-7.2 16-16 16z' fill='%23D8A7B4' fill-opacity='0.15'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  /* Camera flash animation */
+  @keyframes flash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  .animate-flash {
+    animation: flash 0.2s ease-out forwards;
+  }
+
+  /* Film grain animation for camera */
+  @keyframes grain {
+    0%   { transform: translate(0, 0); }
+    20%  { transform: translate(-3px, 4px); }
+    40%  { transform: translate(3px, -2px); }
+    60%  { transform: translate(-4px, -3px); }
+    80%  { transform: translate(4px, 3px); }
+    100% { transform: translate(-1px, 2px); }
+  }
+
+  .animate-grain {
+    animation: grain 0.45s steps(3) infinite;
+  }
+
+  /* Camera shutter press */
+  @keyframes shutter-press {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(0.88); }
+    100% { transform: scale(1); }
+  }
+
+  .animate-shutter {
+    animation: shutter-press 0.15s ease-out forwards;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
