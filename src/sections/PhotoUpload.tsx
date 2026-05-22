@@ -22,6 +22,7 @@ export default function PhotoUpload() {
   const sectionRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const leavesRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   
   const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -332,6 +333,7 @@ export default function PhotoUpload() {
               </label>
               <div className="relative">
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   multiple
@@ -340,20 +342,19 @@ export default function PhotoUpload() {
                   id="photo-upload-input"
                   disabled={!isDriveConfigured}
                 />
-                <label htmlFor="photo-upload-input" className="block w-full">
-                  <button
-                    type="button"
-                    className={`w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                      isDriveConfigured
-                        ? 'bg-wedding-accent text-white hover:bg-wedding-accent/90'
-                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                    }`}
-                    disabled={!isDriveConfigured}
-                  >
-                    <Upload className="w-5 h-5" />
-                    Select Photos
-                  </button>
-                </label>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                    isDriveConfigured
+                      ? 'bg-wedding-accent text-white hover:bg-wedding-accent/90'
+                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  }`}
+                  disabled={!isDriveConfigured}
+                >
+                  <Upload className="w-5 h-5" />
+                  Select Photos
+                </button>
                 <p className="mt-3 text-xs text-wedding-muted/80">
                   {isDriveConfigured
                     ? 'Choose up to 5 images from your device.'
