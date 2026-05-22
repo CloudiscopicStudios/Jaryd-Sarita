@@ -195,6 +195,7 @@ export default function PhotoUpload() {
 
   return (
     <section 
+      id="photo-upload"
       ref={sectionRef}
       className="relative w-full h-screen overflow-hidden z-30 bg-wedding-bg"
     >
@@ -336,27 +337,28 @@ export default function PhotoUpload() {
                   multiple
                   onChange={handleFileSelect}
                   className="hidden"
-                  id="photo-upload"
+                  id="photo-upload-input"
                   disabled={!isDriveConfigured}
                 />
-                <label 
-                  htmlFor="photo-upload"
-                  className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                    isDriveConfigured 
-                      ? 'border-wedding-accent/30 hover:border-wedding-accent/60 bg-white/50' 
-                      : 'border-gray-300 bg-gray-100 cursor-not-allowed'
-                  }`}
-                >
-                  <Upload className={`w-8 h-8 mb-2 ${isDriveConfigured ? 'text-wedding-accent' : 'text-gray-400'}`} />
-                  <span className={`font-sans text-sm ${isDriveConfigured ? 'text-wedding-muted' : 'text-gray-400'}`}>
-                    {isDriveConfigured ? 'Click to select photos' : 'Uploads not available yet'}
-                  </span>
-                  {isDriveConfigured && (
-                    <span className="font-sans text-xs text-wedding-muted/70 mt-1">
-                      You can select up to 5 photos
-                    </span>
-                  )}
+                <label htmlFor="photo-upload-input" className="block w-full">
+                  <button
+                    type="button"
+                    className={`w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
+                      isDriveConfigured
+                        ? 'bg-wedding-accent text-white hover:bg-wedding-accent/90'
+                        : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                    }`}
+                    disabled={!isDriveConfigured}
+                  >
+                    <Upload className="w-5 h-5" />
+                    Select Photos
+                  </button>
                 </label>
+                <p className="mt-3 text-xs text-wedding-muted/80">
+                  {isDriveConfigured
+                    ? 'Choose up to 5 images from your device.'
+                    : 'Uploads are unavailable until Google Drive is configured.'}
+                </p>
               </div>
             </div>
 

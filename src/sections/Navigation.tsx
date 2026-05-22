@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 
 const navItems = [
-  { label: 'Story', href: '#story' },
-  { label: 'Details', href: '#details' },
-  { label: 'Camera', href: '#camera' },
-  { label: 'Guestbook', href: '#guestbook' },
+  { label: '', href: '' }
 ];
 
 export default function Navigation() {
@@ -43,10 +40,10 @@ export default function Navigation() {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <a 
-              href="#"
+              href="#photo-upload"
               onClick={(e) => {
                 e.preventDefault();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                scrollToSection('#photo-upload');
               }}
               className={`font-serif text-lg sm:text-xl transition-colors duration-300 ${
                 isScrolled ? 'text-wedding-text' : 'text-white'

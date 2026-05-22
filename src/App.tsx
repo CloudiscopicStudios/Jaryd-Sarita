@@ -4,15 +4,8 @@ import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import Navigation from './sections/Navigation';
-import Hero from './sections/Hero';
-import Story from './sections/Story';
-import Timeline from './sections/Timeline';
 import PhotoUpload from './sections/PhotoUpload';
-import Guestbook from './sections/Guestbook';
-import Closing from './sections/Closing';
-import DisposableCamera from './sections/DisposableCamera';
 import Admin from './pages/Admin';
-import Camera from './pages/Camera';
 
 import './App.css';
 
@@ -118,34 +111,8 @@ function MainContent() {
 
       {/* Main Content */}
       <main ref={mainRef} className="relative z-10">
-        {/* Section 1: Hero - pin: true */}
-        <Hero />
-
-        {/* Section 2: Story - pin: false */}
-        <div id="story">
-          <Story />
-        </div>
-
-        {/* Section 3: Timeline - pin: false */}
-        <div id="details">
-          <Timeline />
-        </div>
-
-        {/* Section 4: Disposable Camera - pin: false */}
-        <div id="camera">
-          <DisposableCamera />
-        </div>
-
         {/* Section 5: Photo Upload - pin: true */}
         <PhotoUpload />
-
-        {/* Section 6: Guestbook - pin: false */}
-        <div id="guestbook">
-          <Guestbook />
-        </div>
-
-        {/* Section 6: Closing - pin: false */}
-        <Closing />
       </main>
     </div>
   );
@@ -157,8 +124,6 @@ function App() {
       <Route path="/" element={<MainContent />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="/admin.html" element={<Admin />} />
-      <Route path="/camera" element={<Camera />} />
-      <Route path="/camera.html" element={<Camera />} />
     </Routes>
   );
 }
