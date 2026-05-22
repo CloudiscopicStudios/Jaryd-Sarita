@@ -42,35 +42,59 @@ function AdminContent() {
     setIsAuthenticated(true);
     setTokenStatus('ok');
 
-    // Schedule a silent refresh 5 min before expiry
+    // Schedule a server-side refresh call 5 min before expiry
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
     const delay = Math.max((expiresIn - 300) * 1000, 0);
-    refreshTimerRef.current = setTimeout(() => silentLogin(), delay);
+    refreshTimerRef.current = setTimeout(() => {
+      silentRefresh();
+    }, delay);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Silent re-auth — no popup, uses existing Google session
-  const silentLogin = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    prompt: 'none',
-    onSuccess: (tokenResponse) => {
-      saveToken(tokenResponse);
+  // Silent refresh — call backend to exchange stored refresh token for access token
+  const silentRefresh = async () => {
+    try {
+      setTokenStatus('refreshing');
+      const server = import.meta.env.VITE_TOKEN_SERVER_URL || 'http://localhost:4000';
+      const res = await fetch(`${server}/auth/token`, { credentials: 'include' });
+      if (!res.ok) {
+        setTokenStatus('expired');
+        setIsAuthenticated(false);
+        return;
+      }
+      const data = await res.json();
+      saveToken({ access_token: data.access_token, expires_in: data.expires_in });
       setTokenStatus('ok');
-    },
-    onError: () => {
-      // Silent failed — user's Google session expired, need manual login
+    } catch (e) {
       setTokenStatus('expired');
       setIsAuthenticated(false);
-    },
-  });
+    }
+  };
 
-  // Full login with consent popup
+  // Full login with consent popup using auth-code flow. The server will exchange code and store refresh token.
   const login = useGoogleLogin({
+    flow: 'auth-code',
     scope: 'https://www.googleapis.com/auth/drive.file',
-    onSuccess: (tokenResponse) => {
-      saveToken(tokenResponse, folderId || undefined);
-      showMessage('success', 'Connected to Google Drive!');
-      const config = googleDriveService.getConfig();
-      if (config?.folderId) { setFolderId(config.folderId); loadFiles(); }
+    onSuccess: async (codeResponse) => {
+      try {
+        const server = import.meta.env.VITE_TOKEN_SERVER_URL || 'http://localhost:4000';
+        const res = await fetch(`${server}/auth/exchange`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: codeResponse.code, redirect_uri: window.location.origin + '/admin' })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          showMessage('error', err.error || 'Login exchange failed');
+          return;
+        }
+        const data = await res.json();
+        saveToken({ access_token: data.access_token, expires_in: data.expires_in }, folderId || undefined);
+        showMessage('success', 'Connected to Google Drive!');
+        const config = googleDriveService.getConfig();
+        if (config?.folderId) { setFolderId(config.folderId); loadFiles(); }
+      } catch (e) {
+        showMessage('error', 'Login failed. Please try again.');
+      }
     },
     onError: () => showMessage('error', 'Login failed. Please try again.'),
   });
@@ -83,9 +107,9 @@ function AdminContent() {
     if (config.folderId) setFolderId(config.folderId);
 
     if (googleDriveService.needsRefresh()) {
-      // Token expired or expiring — try silent refresh
+      // Token expired or expiring — try silent refresh via backend
       setTokenStatus('refreshing');
-      silentLogin();
+      silentRefresh();
     } else {
       setIsAuthenticated(true);
       if (config.folderId) loadFiles();
@@ -93,7 +117,7 @@ function AdminContent() {
       // Schedule refresh for when it will expire
       if (config.expiresAt) {
         const delay = Math.max(config.expiresAt - Date.now() - 5 * 60 * 1000, 0);
-        refreshTimerRef.current = setTimeout(() => silentLogin(), delay);
+        refreshTimerRef.current = setTimeout(() => silentRefresh(), delay);
       }
     }
 
@@ -102,6 +126,11 @@ function AdminContent() {
 
   const handleLogout = () => {
     googleLogout();
+    // Clear server-side refresh token as well
+    try {
+      const server = import.meta.env.VITE_TOKEN_SERVER_URL || 'http://localhost:4000';
+      fetch(`${server}/auth/logout`, { method: 'POST' }).catch(() => {});
+    } catch (e) { /* ignore */ }
     googleDriveService.clearConfig();
     setIsAuthenticated(false);
     setFolderId('');
