@@ -27,12 +27,13 @@ export default function Navigation() {
   return (
     <>
       {/* Main Navigation */}
-      <nav 
+      <nav
         className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-500 ${
-          isScrolled 
-            ? 'bg-wedding-bg/90 backdrop-blur-md shadow-sm py-3' 
+          isScrolled
+            ? 'py-3 backdrop-blur-md shadow-sm'
             : 'bg-transparent py-5'
         }`}
+        style={isScrolled ? { background: 'rgba(245,239,228,0.92)' } : undefined}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
@@ -44,9 +45,8 @@ export default function Navigation() {
                 setIsMobileMenuOpen(false);
                 window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
-              className={`font-serif text-lg sm:text-xl transition-colors duration-300 ${
-                isScrolled ? 'text-wedding-text' : 'text-white'
-              }`}
+              className="font-serif text-lg sm:text-xl transition-colors duration-300"
+              style={{ color: '#2D5A3D' }}
             >
               Jaryd <span className="opacity-70">&</span> Sarita
             </a>
@@ -57,16 +57,11 @@ export default function Navigation() {
                 <button
                   key={item.label}
                   onClick={() => scrollToSection(item.href)}
-                  className={`font-sans text-sm tracking-wide transition-colors duration-300 relative group ${
-                    isScrolled 
-                      ? 'text-wedding-text hover:text-wedding-accent' 
-                      : 'text-white/90 hover:text-white'
-                  }`}
+                  className="font-sans text-sm tracking-wide transition-colors duration-300 relative group"
+                  style={{ color: '#2D5A3D' }}
                 >
                   {item.label}
-                  <span className={`absolute -bottom-1 left-0 w-full h-px transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300 ${
-                    isScrolled ? 'bg-wedding-accent' : 'bg-white'
-                  }`} />
+                  <span className="absolute -bottom-1 left-0 w-full h-px bg-[#8B1520] transform origin-left scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
                 </button>
               ))}
             </div>
@@ -74,9 +69,8 @@ export default function Navigation() {
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className={`sm:hidden p-2 transition-colors duration-300 ${
-                isScrolled ? 'text-wedding-text' : 'text-white'
-              }`}
+              className="sm:hidden p-2 transition-colors duration-300"
+              style={{ color: '#2D5A3D' }}
             >
               {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
