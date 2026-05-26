@@ -21,7 +21,7 @@ function AdminContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [tokenStatus, setTokenStatus] = useState<'ok' | 'refreshing' | 'expired'>('ok');
+  const [tokenStatus, setTokenStatus] = useState<'ok' | 'refreshing' | 'expired'>('refreshing');
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showMessage = (type: 'success' | 'error', text: string) => {
@@ -51,10 +51,18 @@ function AdminContent() {
 
   // Try to restore session from the backend on every mount — no localStorage required
   useEffect(() => {
+    let cancelled = false;
+
+    // Timeout fallback: if the backend doesn't respond in 8s, show the sign-in button
+    const timeout = setTimeout(() => {
+      if (!cancelled) setTokenStatus('expired');
+    }, 8000);
+
     (async () => {
-      setTokenStatus('refreshing');
       try {
         const data = await api.getToken();
+        if (cancelled) return;
+        clearTimeout(timeout);
         const expiresAt = Date.now() + (data.expires_in ?? 3600) * 1000;
         googleDriveService.setConfig({
           accessToken: data.access_token,
@@ -69,12 +77,18 @@ function AdminContent() {
         }
         scheduleRefresh(expiresAt);
       } catch {
+        if (cancelled) return;
+        clearTimeout(timeout);
         // No refresh token stored yet — admin must sign in
         setTokenStatus('expired');
       }
     })();
 
-    return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Re-check when user returns to the tab (handles computer sleep)
@@ -230,9 +244,17 @@ function AdminContent() {
         )}
 
         {tokenStatus === 'refreshing' && !isAuthenticated ? (
-          <div className="flex items-center justify-center py-20">
-            <RefreshCw className="w-6 h-6 text-wedding-muted animate-spin mr-3" />
-            <span className="font-sans text-wedding-muted">Connecting…</span>
+          <div className="flex flex-col items-center justify-center py-20 gap-4">
+            <div className="flex items-center gap-3">
+              <RefreshCw className="w-6 h-6 text-wedding-muted animate-spin" />
+              <span className="font-sans text-wedding-muted">Connecting…</span>
+            </div>
+            <button
+              onClick={() => setTokenStatus('expired')}
+              className="font-sans text-xs text-wedding-muted underline underline-offset-2"
+            >
+              Taking too long? Click to sign in manually
+            </button>
           </div>
         ) : !isAuthenticated ? (
           <div className="bg-white rounded-2xl p-8 sm:p-12 shadow-sm border border-wedding-accent/10 text-center">
