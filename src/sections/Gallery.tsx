@@ -111,7 +111,8 @@ export default function Gallery() {
   };
 
   return (
-    <section 
+    <section
+      id="gallery"
       ref={sectionRef}
       className="relative w-full py-16 sm:py-24 overflow-hidden z-20 bg-wedding-bg"
     >

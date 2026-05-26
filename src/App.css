@@ -1,8 +1,9 @@
 /* Wedding Website - App Styles */
 
-/* Smooth scrolling for the entire page */
+/* scroll-behavior: smooth is intentionally NOT set globally
+   — GSAP scrub provides its own smoothing; smooth scroll + scrub causes double-lag */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 /* Custom scrollbar */

@@ -1,10 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import Navigation from './sections/Navigation';
+import Hero from './sections/Hero';
+import Story from './sections/Story';
+import Timeline from './sections/Timeline';
 import PhotoUpload from './sections/PhotoUpload';
+import Gallery from './sections/Gallery';
+import Closing from './sections/Closing';
 import Admin from './pages/Admin';
 
 import './App.css';
@@ -12,62 +17,6 @@ import './App.css';
 gsap.registerPlugin(ScrollTrigger);
 
 function MainContent() {
-  const mainRef = useRef<HTMLElement>(null);
-  const snapTriggerRef = useRef<ScrollTrigger | null>(null);
-
-  useEffect(() => {
-    // Wait for all sections to mount and create their ScrollTriggers
-    const timer = setTimeout(() => {
-      const pinned = ScrollTrigger.getAll()
-        .filter(st => st.vars.pin)
-        .sort((a, b) => a.start - b.start);
-      
-      const maxScroll = ScrollTrigger.maxScroll(window);
-      
-      if (!maxScroll || pinned.length === 0) return;
-
-      // Build ranges and snap targets from pinned sections
-      const pinnedRanges = pinned.map(st => ({
-        start: st.start / maxScroll,
-        end: (st.end ?? st.start) / maxScroll,
-        center: (st.start + ((st.end ?? st.start) - st.start) * 0.5) / maxScroll,
-      }));
-
-      // Create global snap
-      snapTriggerRef.current = ScrollTrigger.create({
-        snap: {
-          snapTo: (value: number) => {
-            // Check if within any pinned range (with small buffer)
-            const inPinned = pinnedRanges.some(
-              r => value >= r.start - 0.02 && value <= r.end + 0.02
-            );
-            
-            // If not in a pinned section, allow free scroll
-            if (!inPinned) return value;
-
-            // Find nearest pinned center
-            const target = pinnedRanges.reduce((closest, r) =>
-              Math.abs(r.center - value) < Math.abs(closest - value) ? r.center : closest,
-              pinnedRanges[0]?.center ?? 0
-            );
-
-            return target;
-          },
-          duration: { min: 0.15, max: 0.35 },
-          delay: 0,
-          ease: 'power2.out',
-        }
-      });
-    }, 500);
-
-    return () => {
-      clearTimeout(timer);
-      if (snapTriggerRef.current) {
-        snapTriggerRef.current.kill();
-      }
-    };
-  }, []);
-
   // Cleanup all ScrollTriggers on unmount
   useEffect(() => {
     return () => {
@@ -77,10 +26,9 @@ function MainContent() {
 
   return (
     <div className="relative min-h-screen bg-wedding-bg">
-      {/* Watercolor Background */}
-      <div className="fixed inset-0 z-0 overflow-hidden">
-        {/* Base watercolor washes */}
-        <div 
+      {/* Watercolor Background — fixed so it shows through all sections */}
+      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+        <div
           className="absolute inset-0 animate-breathe"
           style={{
             background: `
@@ -90,9 +38,7 @@ function MainContent() {
             `,
           }}
         />
-        
-        {/* Additional soft washes */}
-        <div 
+        <div
           className="absolute inset-0"
           style={{
             background: `
@@ -110,9 +56,13 @@ function MainContent() {
       <Navigation />
 
       {/* Main Content */}
-      <main ref={mainRef} className="relative z-10">
-        {/* Section 5: Photo Upload - pin: true */}
+      <main className="relative z-10">
+        <Hero />
+        <Story />
+        <Timeline />
         <PhotoUpload />
+        <Gallery />
+        <Closing />
       </main>
     </div>
   );

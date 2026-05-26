@@ -60,7 +60,8 @@ export default function Closing() {
   }, []);
 
   return (
-    <section 
+    <section
+      id="closing"
       ref={sectionRef}
       className="relative w-full py-16 sm:py-24 overflow-hidden z-50 bg-wedding-bg"
     >
@@ -76,7 +77,7 @@ export default function Closing() {
         <div ref={contentRef} className="text-center mb-16">
           <div className="flex items-center justify-center gap-2 mb-6">
             <Heart className="w-5 h-5 text-wedding-accent" />
-            <Heart className="w-6 h-6 text-wedding-accent fill-wedding-accent" />
+            <Heart className="w-6 h-6 text-wedding-accent fill-current" />
             <Heart className="w-5 h-5 text-wedding-accent" />
           </div>
           

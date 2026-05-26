@@ -76,7 +76,8 @@ export default function Story() {
   }, []);
 
   return (
-    <section 
+    <section
+      id="story"
       ref={sectionRef}
       className="relative w-full min-h-screen py-16 sm:py-24 overflow-hidden z-20 bg-wedding-bg"
     >

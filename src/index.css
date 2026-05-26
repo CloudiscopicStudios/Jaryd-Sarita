@@ -44,9 +44,10 @@
   }
   
   html {
-    scroll-behavior: smooth;
+    /* scroll-behavior: smooth removed — GSAP scrub handles smoothing */
+    scroll-behavior: auto;
   }
-  
+
   body {
     @apply bg-[var(--wedding-bg)] text-[var(--wedding-text)] antialiased;
     font-family: 'Inter', sans-serif;

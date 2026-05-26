@@ -144,7 +144,8 @@ export default function Timeline() {
   }, []);
 
   return (
-    <section 
+    <section
+      id="schedule"
       ref={sectionRef}
       className="relative w-full py-16 sm:py-24 overflow-hidden z-20 bg-wedding-bg"
     >
