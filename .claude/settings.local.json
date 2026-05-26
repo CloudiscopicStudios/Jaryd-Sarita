@@ -6,7 +6,8 @@
       "Bash(npx tsc *)",
       "Bash(npx vite *)",
       "Bash(node_modules/.bin/vite build *)",
-      "WebFetch(domain:lense.app)"
+      "WebFetch(domain:lense.app)",
+      "Bash(npm install *)"
     ]
   }
 }

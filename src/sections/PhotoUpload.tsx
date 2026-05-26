@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { googleDriveService } from '@/services/googleDrive';
+import { api } from '@/services/api';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -33,9 +34,20 @@ export default function PhotoUpload() {
   const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
   const [isDriveConfigured, setIsDriveConfigured] = useState(false);
 
-  // Check if Google Drive is configured
+  // Check if Drive is configured by asking the backend
   useEffect(() => {
-    setIsDriveConfigured(googleDriveService.isConfigured());
+    api.getToken()
+      .then(data => {
+        if (data.folderId) {
+          googleDriveService.setConfig({
+            accessToken: data.access_token,
+            folderId: data.folderId,
+            expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+          });
+          setIsDriveConfigured(true);
+        }
+      })
+      .catch(() => setIsDriveConfigured(false));
   }, []);
 
   useEffect(() => {
@@ -134,18 +146,21 @@ export default function PhotoUpload() {
   const handleUpload = useCallback(async () => {
     if (!guestName.trim() || selectedFiles.length === 0) return;
 
-    if (!isDriveConfigured) {
-      setUploadStatus({ 
-        type: 'error', 
-        message: 'Google Drive is not configured yet. Please ask the couple to set it up in the admin panel.' 
-      });
-      return;
-    }
-
     setIsUploading(true);
     setUploadStatus({ type: null, message: '' });
 
     try {
+      // Always get a fresh token from the backend before uploading
+      const tokenData = await api.getToken();
+      if (!tokenData.folderId) {
+        throw new Error('Google Drive is not configured yet. Please ask the couple to set it up.');
+      }
+      googleDriveService.setConfig({
+        accessToken: tokenData.access_token,
+        folderId: tokenData.folderId,
+        expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
+      });
+
       const uploadedPhotos: UploadedPhoto[] = [];
 
       for (const file of selectedFiles) {

@@ -7,6 +7,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { googleDriveService, type UploadResult } from '@/services/googleDrive';
+import { api } from '@/services/api';
 
 const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID as string;
 
@@ -28,85 +29,115 @@ function AdminContent() {
     setTimeout(() => setMessage(null), 6000);
   };
 
-  const saveToken = useCallback((tokenResponse: any, existingFolderId?: string) => {
-    const token = tokenResponse.access_token;
-    const expiresIn = tokenResponse.expires_in ?? 3600; // seconds
-    const expiresAt = Date.now() + expiresIn * 1000;
-    const config = googleDriveService.getConfig();
-    googleDriveService.setConfig({
-      accessToken: token,
-      folderId: existingFolderId ?? config?.folderId ?? null,
-      expiresAt,
-      userEmail: tokenResponse.email,
-    });
-    setIsAuthenticated(true);
-    setTokenStatus('ok');
-
-    // Schedule a silent refresh 5 min before expiry
+  const scheduleRefresh = useCallback((expiresAt: number) => {
     if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
-    const delay = Math.max((expiresIn - 300) * 1000, 0);
-    refreshTimerRef.current = setTimeout(() => silentLogin(), delay);
+    const delay = Math.max(expiresAt - Date.now() - 5 * 60 * 1000, 0);
+    refreshTimerRef.current = setTimeout(async () => {
+      setTokenStatus('refreshing');
+      try {
+        const data = await api.getToken();
+        googleDriveService.setConfig({
+          accessToken: data.access_token,
+          folderId: data.folderId ?? googleDriveService.getConfig()?.folderId ?? null,
+          expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+        });
+        setTokenStatus('ok');
+        scheduleRefresh(Date.now() + (data.expires_in ?? 3600) * 1000);
+      } catch {
+        setTokenStatus('expired');
+      }
+    }, delay);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Silent re-auth — no popup, uses existing Google session
-  const silentLogin = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    prompt: 'none',
-    onSuccess: (tokenResponse) => {
-      saveToken(tokenResponse);
-      setTokenStatus('ok');
-    },
-    onError: () => {
-      // Silent failed — user's Google session expired, need manual login
-      console.warn('Silent refresh failed — user must sign in again');
-      setTokenStatus('expired');
-      setIsAuthenticated(false);
-    },
-  });
-
-  // Full login with consent popup
-  const login = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/drive.file',
-    onSuccess: (tokenResponse) => {
-      saveToken(tokenResponse, folderId || undefined);
-      showMessage('success', 'Connected to Google Drive!');
-      const config = googleDriveService.getConfig();
-      if (config?.folderId) { setFolderId(config.folderId); loadFiles(); }
-    },
-    onError: () => showMessage('error', 'Login failed. Please try again.'),
-  });
-
-  // On mount: restore session or attempt silent re-auth
+  // Try to restore session from the backend on every mount — no localStorage required
   useEffect(() => {
-    const config = googleDriveService.getConfig();
-    if (!config?.accessToken) return;
-
-    if (config.folderId) setFolderId(config.folderId);
-
-    if (googleDriveService.needsRefresh()) {
-      // Token expired or expiring — try silent refresh
+    (async () => {
       setTokenStatus('refreshing');
-      silentLogin();
-    } else {
-      setIsAuthenticated(true);
-      if (config.folderId) loadFiles();
-
-      // Schedule refresh for when it will expire
-      if (config.expiresAt) {
-        const delay = Math.max(config.expiresAt - Date.now() - 5 * 60 * 1000, 0);
-        refreshTimerRef.current = setTimeout(() => silentLogin(), delay);
+      try {
+        const data = await api.getToken();
+        const expiresAt = Date.now() + (data.expires_in ?? 3600) * 1000;
+        googleDriveService.setConfig({
+          accessToken: data.access_token,
+          folderId: data.folderId,
+          expiresAt,
+        });
+        setIsAuthenticated(true);
+        setTokenStatus('ok');
+        if (data.folderId) {
+          setFolderId(data.folderId);
+          loadFiles();
+        }
+        scheduleRefresh(expiresAt);
+      } catch {
+        // No refresh token stored yet — admin must sign in
+        setTokenStatus('expired');
       }
-    }
+    })();
 
     return () => { if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleLogout = () => {
+  // Re-check when user returns to the tab (handles computer sleep)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState !== 'visible' || !isAuthenticated) return;
+      if (googleDriveService.needsRefresh()) {
+        setTokenStatus('refreshing');
+        try {
+          const data = await api.getToken();
+          const expiresAt = Date.now() + (data.expires_in ?? 3600) * 1000;
+          googleDriveService.setConfig({
+            accessToken: data.access_token,
+            folderId: data.folderId ?? googleDriveService.getConfig()?.folderId ?? null,
+            expiresAt,
+          });
+          setTokenStatus('ok');
+          scheduleRefresh(expiresAt);
+        } catch {
+          setTokenStatus('expired');
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isAuthenticated, scheduleRefresh]);
+
+  // Auth-code flow — the server exchanges the code and stores the refresh token
+  const login = useGoogleLogin({
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    flow: 'auth-code',
+    onSuccess: async ({ code }) => {
+      try {
+        const data = await api.exchangeCode(code);
+        const expiresAt = Date.now() + (data.expires_in ?? 3600) * 1000;
+        googleDriveService.setConfig({
+          accessToken: data.access_token,
+          folderId: data.folderId ?? googleDriveService.getConfig()?.folderId ?? null,
+          expiresAt,
+        });
+        setIsAuthenticated(true);
+        setTokenStatus('ok');
+        if (data.folderId) {
+          setFolderId(data.folderId);
+          loadFiles();
+        }
+        scheduleRefresh(expiresAt);
+        showMessage('success', 'Connected to Google Drive!');
+      } catch (err: any) {
+        showMessage('error', err.message || 'Login failed');
+      }
+    },
+    onError: () => showMessage('error', 'Login failed. Please try again.'),
+  });
+
+  const handleLogout = async () => {
     googleLogout();
+    await api.logout();
     googleDriveService.clearConfig();
     setIsAuthenticated(false);
     setFolderId('');
     setFiles([]);
+    setTokenStatus('expired');
   };
 
   const createFolder = async () => {
@@ -114,6 +145,8 @@ function AdminContent() {
     try {
       const id = await googleDriveService.createFolder(folderName);
       setFolderId(id);
+      // Persist folder ID to the backend so guests can use it
+      await api.saveConfig(id);
       showMessage('success', `Folder "${folderName}" created! Guests can now upload photos.`);
       loadFiles();
     } catch (err: any) {
@@ -165,10 +198,7 @@ function AdminContent() {
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="font-serif text-2xl text-red-800 mb-3">Google Client ID Missing</h2>
           <p className="font-sans text-sm text-red-700 mb-4">
-            Add <code className="bg-red-100 px-1 rounded">VITE_GOOGLE_CLIENT_ID</code> to your GitHub repository secrets, then redeploy.
-          </p>
-          <p className="font-sans text-xs text-red-600">
-            See setup instructions below or ask your developer.
+            Add <code className="bg-red-100 px-1 rounded">VITE_GOOGLE_CLIENT_ID</code> to your Netlify environment variables, then redeploy.
           </p>
         </div>
       </div>
@@ -199,14 +229,19 @@ function AdminContent() {
           </div>
         )}
 
-        {!isAuthenticated ? (
+        {tokenStatus === 'refreshing' && !isAuthenticated ? (
+          <div className="flex items-center justify-center py-20">
+            <RefreshCw className="w-6 h-6 text-wedding-muted animate-spin mr-3" />
+            <span className="font-sans text-wedding-muted">Connecting…</span>
+          </div>
+        ) : !isAuthenticated ? (
           <div className="bg-white rounded-2xl p-8 sm:p-12 shadow-sm border border-wedding-accent/10 text-center">
             <div className="w-16 h-16 bg-wedding-accent/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <Folder className="w-8 h-8 text-wedding-accent" />
             </div>
             <h2 className="font-serif text-2xl text-wedding-text mb-3">Connect Google Drive</h2>
             <p className="font-sans text-wedding-muted mb-8 max-w-md mx-auto text-sm">
-              Sign in with your Google account to create a wedding photo folder. All guest camera uploads will save here automatically.
+              Sign in once to link Google Drive. Your session is stored securely — you won't need to sign in again.
             </p>
             <Button onClick={() => login()} className="btn-wedding px-8">
               Sign in with Google
@@ -261,18 +296,6 @@ function AdminContent() {
                 <p className="font-sans text-xs text-wedding-muted mt-3">
                   This creates a shared Google Drive folder. Guest photos upload here automatically.
                 </p>
-              </div>
-            )}
-
-            {/* Token status — only show if there's a problem */}
-            {tokenStatus === 'expired' && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-4">
-                <p className="font-sans text-sm text-amber-800">
-                  Session expired — sign in again to keep uploads working.
-                </p>
-                <Button onClick={() => login()} size="sm" className="btn-wedding whitespace-nowrap">
-                  Sign in again
-                </Button>
               </div>
             )}
 
