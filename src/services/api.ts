@@ -4,10 +4,11 @@ interface TokenResponse {
   folderId: string | null;
 }
 
+// Calls Netlify Functions directly — no redirect needed
 const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? '';
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}/api${path}`, init);
+  const res = await fetch(`${API_BASE}/.netlify/functions${path}`, init);
   const body = await res.json().catch(() => ({ error: "Request failed" }));
   if (!res.ok) throw new Error((body as { error?: string }).error ?? "Request failed");
   return body as T;
