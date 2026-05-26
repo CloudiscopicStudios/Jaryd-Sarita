@@ -1,7 +1,7 @@
 [build]
   # Only install deps — Netlify functions are bundled separately by esbuild.
   # The React frontend is served by GitHub Pages, not Netlify.
-  command = "npm ci"
+  command = "npm install"
   publish = "public"
 
 [functions]
