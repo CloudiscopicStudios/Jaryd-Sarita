@@ -1,12 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Menu, X } from 'lucide-react';
 
-const navItems = [
-  { label: 'Our Story', href: '#story' },
-  { label: 'Schedule', href: '#schedule' },
-  { label: 'Share Photos', href: '#photo-upload' },
-  { label: 'Gallery', href: '#gallery' },
-];
+const navItems: { label: string; href: string }[] = [];
 
 export default function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);

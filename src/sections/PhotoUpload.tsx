@@ -1,14 +1,9 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Upload, X, User, ImageIcon, AlertCircle, CheckCircle } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { googleDriveService } from '@/services/googleDrive';
 import { api } from '@/services/api';
-
-gsap.registerPlugin(ScrollTrigger);
 
 interface UploadedPhoto {
   id: string;
@@ -20,21 +15,27 @@ interface UploadedPhoto {
 }
 
 export default function PhotoUpload() {
-  const sectionRef = useRef<HTMLElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const leavesRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  
-  const [photos, setPhotos] = useState<UploadedPhoto[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [guestName, setGuestName] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<{ type: 'success' | 'error' | null; message: string }>({ type: null, message: '' });
-  const [isDriveConfigured, setIsDriveConfigured] = useState(false);
+  const sectionRef    = useRef<HTMLElement>(null);
+  const cardRef       = useRef<HTMLDivElement>(null);
+  const eyebrowRef    = useRef<HTMLSpanElement>(null);
+  const headlineRef   = useRef<HTMLHeadingElement>(null);
+  const bodyRef       = useRef<HTMLParagraphElement>(null);
+  const btnWrapRef    = useRef<HTMLDivElement>(null);
+  const fileInputRef  = useRef<HTMLInputElement | null>(null);
 
-  // Check if Drive is configured by asking the backend
+  const [photos, setPhotos]               = useState<UploadedPhoto[]>([]);
+  const [isDialogOpen, setIsDialogOpen]   = useState(false);
+  const [guestName, setGuestName]         = useState('');
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls]     = useState<string[]>([]);
+  const [isUploading, setIsUploading]     = useState(false);
+  const [isDriveConfigured, setIsDriveConfigured] = useState(false);
+  const [uploadStatus, setUploadStatus]   = useState<{
+    type: 'success' | 'error' | null;
+    message: string;
+  }>({ type: null, message: '' });
+
+  // Check if Drive is configured
   useEffect(() => {
     api.getToken()
       .then(data => {
@@ -50,89 +51,38 @@ export default function PhotoUpload() {
       .catch(() => setIsDriveConfigured(false));
   }, []);
 
+  // Entrance animation
   useEffect(() => {
-    const section = sectionRef.current;
-    const content = contentRef.current;
-    const leaves = leavesRef.current;
+    const card     = cardRef.current;
+    const eyebrow  = eyebrowRef.current;
+    const headline = headlineRef.current;
+    const body     = bodyRef.current;
+    const btn      = btnWrapRef.current;
+    if (!card) return;
 
-    if (!section || !content || !leaves) return;
+    gsap.set(card,     { opacity: 0, y: 40, scale: 0.96 });
+    gsap.set([eyebrow, headline, body, btn].filter(Boolean), { opacity: 0, y: 18 });
 
-    const ctx = gsap.context(() => {
-      const scrollTl = gsap.timeline({
-        scrollTrigger: {
-          trigger: section,
-          start: 'top top',
-          end: '+=130%',
-          pin: true,
-          scrub: 0.6,
-        }
-      });
+    const tl = gsap.timeline({ delay: 0.25 });
+    tl.to(card, { opacity: 1, y: 0, scale: 1, duration: 1.1, ease: 'power3.out' })
+      .to([eyebrow, headline, body, btn].filter(Boolean), {
+        opacity: 1,
+        y: 0,
+        stagger: 0.1,
+        duration: 0.8,
+        ease: 'power2.out',
+      }, '-=0.7');
 
-      // Entrance animations (0% - 30%)
-      const headline = content.querySelector('.headline');
-      const subheadline = content.querySelector('.subheadline');
-      const ctaButton = content.querySelector('.cta-button');
-      const secondaryLink = content.querySelector('.secondary-link');
-
-      if (headline) {
-        scrollTl.fromTo(headline,
-          { opacity: 0, y: '18vh', rotateX: 18 },
-          { opacity: 1, y: 0, rotateX: 0, ease: 'none' },
-          0
-        );
-      }
-
-      if (subheadline) {
-        scrollTl.fromTo(subheadline,
-          { opacity: 0, y: '10vh' },
-          { opacity: 1, y: 0, ease: 'none' },
-          0.05
-        );
-      }
-
-      if (ctaButton) {
-        scrollTl.fromTo(ctaButton,
-          { opacity: 0, y: '8vh', scale: 0.96 },
-          { opacity: 1, y: 0, scale: 1, ease: 'none' },
-          0.1
-        );
-      }
-
-      if (secondaryLink) {
-        scrollTl.fromTo(secondaryLink,
-          { opacity: 0, y: '6vh' },
-          { opacity: 1, y: 0, ease: 'none' },
-          0.15
-        );
-      }
-
-      // Exit animations (70% - 100%)
-      scrollTl.to(content.querySelectorAll('.animate-item'), {
-        y: '-10vh',
-        opacity: 0,
-        stagger: 0.02,
-        ease: 'power2.in'
-      }, 0.7);
-
-      scrollTl.to(leaves, {
-        opacity: 0,
-        ease: 'power2.in'
-      }, 0.75);
-
-    }, section);
-
-    return () => ctx.revert();
+    return () => { tl.kill(); };
   }, []);
 
+  // ── Upload logic ──────────────────────────────────────────────────────────
+
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length > 0) {
-      // Limit to 5 files
-      const limitedFiles = files.slice(0, 5);
-      setSelectedFiles(limitedFiles);
-      const urls = limitedFiles.map(file => URL.createObjectURL(file));
-      setPreviewUrls(urls);
-    }
+    const files = Array.from(e.target.files || []).slice(0, 5);
+    if (!files.length) return;
+    setSelectedFiles(files);
+    setPreviewUrls(files.map(f => URL.createObjectURL(f)));
   }, []);
 
   const removeFile = useCallback((index: number) => {
@@ -145,28 +95,22 @@ export default function PhotoUpload() {
 
   const handleUpload = useCallback(async () => {
     if (!guestName.trim() || selectedFiles.length === 0) return;
-
     setIsUploading(true);
     setUploadStatus({ type: null, message: '' });
 
     try {
-      // Always get a fresh token from the backend before uploading
       const tokenData = await api.getToken();
-      if (!tokenData.folderId) {
-        throw new Error('Google Drive is not configured yet. Please ask the couple to set it up.');
-      }
+      if (!tokenData.folderId) throw new Error('Google Drive is not configured yet. Please ask the couple to set it up.');
       googleDriveService.setConfig({
         accessToken: tokenData.access_token,
         folderId: tokenData.folderId,
         expiresAt: Date.now() + (tokenData.expires_in ?? 3600) * 1000,
       });
 
-      const uploadedPhotos: UploadedPhoto[] = [];
-
+      const uploaded: UploadedPhoto[] = [];
       for (const file of selectedFiles) {
         const result = await googleDriveService.uploadFile(file, guestName.trim());
-        
-        uploadedPhotos.push({
+        uploaded.push({
           id: result.id,
           url: googleDriveService.getImageUrl(result.id),
           thumbnailUrl: googleDriveService.getThumbnailUrl(result.id, 200),
@@ -176,227 +120,305 @@ export default function PhotoUpload() {
         });
       }
 
-      setPhotos(prev => [...uploadedPhotos, ...prev]);
-      setUploadStatus({ 
-        type: 'success', 
-        message: `Successfully uploaded ${uploadedPhotos.length} photo${uploadedPhotos.length !== 1 ? 's' : ''}!` 
-      });
-      
-      // Reset form after successful upload
+      setPhotos(prev => [...uploaded, ...prev]);
+      setUploadStatus({ type: 'success', message: `${uploaded.length} photo${uploaded.length !== 1 ? 's' : ''} uploaded!` });
+
       setTimeout(() => {
         setIsDialogOpen(false);
         setGuestName('');
         setSelectedFiles([]);
-        previewUrls.forEach(url => URL.revokeObjectURL(url));
+        previewUrls.forEach(u => URL.revokeObjectURL(u));
         setPreviewUrls([]);
         setUploadStatus({ type: null, message: '' });
       }, 2000);
-    } catch (error: any) {
-      setUploadStatus({ 
-        type: 'error', 
-        message: error.message || 'Failed to upload photos. Please try again.' 
-      });
+    } catch (err: any) {
+      setUploadStatus({ type: 'error', message: err.message || 'Upload failed. Please try again.' });
     } finally {
       setIsUploading(false);
     }
-  }, [guestName, selectedFiles, isDriveConfigured, previewUrls]);
+  }, [guestName, selectedFiles, previewUrls]);
 
   const clearDialog = useCallback(() => {
     setGuestName('');
     setSelectedFiles([]);
-    previewUrls.forEach(url => URL.revokeObjectURL(url));
+    previewUrls.forEach(u => URL.revokeObjectURL(u));
     setPreviewUrls([]);
     setUploadStatus({ type: null, message: '' });
   }, [previewUrls]);
 
+  // ── Render ────────────────────────────────────────────────────────────────
+
   return (
-    <section 
+    <section
       id="photo-upload"
       ref={sectionRef}
-      className="relative w-full h-screen overflow-hidden z-30 bg-wedding-bg"
+      className="relative w-full h-screen overflow-hidden"
     >
-      {/* Floating Leaves */}
-      <div ref={leavesRef} className="absolute inset-0 pointer-events-none overflow-hidden">
-        <svg className="absolute top-[10%] left-[5%] w-20 h-20 opacity-30 animate-float" viewBox="0 0 100 100">
-          <path d="M50 5 C30 20, 10 40, 10 60 C10 80, 30 95, 50 95 C70 95, 90 80, 90 60 C90 40, 70 20, 50 5 Z" fill="#A8C4A0"/>
+      {/* ── Background photo + overlay ──────────────────────────────────── */}
+      <div className="absolute inset-0">
+        <img
+          src="/images/hero_couple.jpg"
+          alt=""
+          aria-hidden="true"
+          className="w-full h-full object-cover"
+        />
+        {/* Deep warm-dark gradient over the photo */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(160deg, rgba(20,13,10,0.78) 0%, rgba(40,22,14,0.72) 50%, rgba(20,13,10,0.82) 100%)',
+          }}
+        />
+      </div>
+
+      {/* ── Ambient glow orbs ───────────────────────────────────────────── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div
+          className="absolute top-[15%] left-[10%] w-[480px] h-[480px] rounded-full opacity-[0.12] animate-breathe"
+          style={{ background: 'radial-gradient(circle, #D8A7B4 0%, transparent 70%)', filter: 'blur(40px)' }}
+        />
+        <div
+          className="absolute bottom-[10%] right-[8%] w-[420px] h-[420px] rounded-full opacity-[0.10] animate-breathe"
+          style={{ background: 'radial-gradient(circle, #A8C4A0 0%, transparent 70%)', filter: 'blur(40px)', animationDelay: '4s' }}
+        />
+        <div
+          className="absolute top-[55%] left-[55%] w-[300px] h-[300px] rounded-full opacity-[0.08] animate-breathe"
+          style={{ background: 'radial-gradient(circle, #D8A7B4 0%, transparent 70%)', filter: 'blur(30px)', animationDelay: '8s' }}
+        />
+      </div>
+
+      {/* ── Floating leaf motifs ─────────────────────────────────────────── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* top-left cluster */}
+        <svg className="absolute top-[12%] left-[6%] w-14 h-14 opacity-20 animate-float" style={{ animationDelay: '0s' }} viewBox="0 0 100 100">
+          <path d="M50 5 C30 20,10 40,10 60 C10 80,30 95,50 95 C70 95,90 80,90 60 C90 40,70 20,50 5Z" fill="#D8A7B4"/>
         </svg>
-        <svg className="absolute top-[20%] right-[8%] w-16 h-16 opacity-25 animate-float" style={{ animationDelay: '1s' }} viewBox="0 0 100 100">
-          <path d="M50 5 C30 20, 10 40, 10 60 C10 80, 30 95, 50 95 C70 95, 90 80, 90 60 C90 40, 70 20, 50 5 Z" fill="#D8A7B4"/>
+        <svg className="absolute top-[20%] left-[3%] w-8 h-8 opacity-15 animate-float" style={{ animationDelay: '1.5s' }} viewBox="0 0 100 100">
+          <path d="M50 5 C30 20,10 40,10 60 C10 80,30 95,50 95 C70 95,90 80,90 60 C90 40,70 20,50 5Z" fill="#A8C4A0"/>
         </svg>
-        <svg className="absolute bottom-[25%] left-[10%] w-14 h-14 opacity-20 animate-float" style={{ animationDelay: '2s' }} viewBox="0 0 100 100">
-          <path d="M50 5 C30 20, 10 40, 10 60 C10 80, 30 95, 50 95 C70 95, 90 80, 90 60 C90 40, 70 20, 50 5 Z" fill="#D8A7B4"/>
+        {/* top-right cluster */}
+        <svg className="absolute top-[8%] right-[7%] w-12 h-12 opacity-20 animate-float" style={{ animationDelay: '2s' }} viewBox="0 0 100 100">
+          <path d="M50 5 C30 20,10 40,10 60 C10 80,30 95,50 95 C70 95,90 80,90 60 C90 40,70 20,50 5Z" fill="#A8C4A0"/>
         </svg>
-        <svg className="absolute bottom-[15%] right-[12%] w-18 h-18 opacity-25 animate-float" style={{ animationDelay: '1.5s' }} viewBox="0 0 100 100">
-          <path d="M50 5 C30 20, 10 40, 10 60 C10 80, 30 95, 50 95 C70 95, 90 80, 90 60 C90 40, 70 20, 50 5 Z" fill="#A8C4A0"/>
+        <svg className="absolute top-[18%] right-[3%] w-7 h-7 opacity-15 animate-float" style={{ animationDelay: '0.8s' }} viewBox="0 0 100 100">
+          <path d="M50 5 C30 20,10 40,10 60 C10 80,30 95,50 95 C70 95,90 80,90 60 C90 40,70 20,50 5Z" fill="#D8A7B4"/>
         </svg>
-        <svg className="absolute top-[50%] left-[3%] w-12 h-12 opacity-20 animate-float" style={{ animationDelay: '0.5s' }} viewBox="0 0 100 100">
-          <path d="M50 5 C30 20, 10 40, 10 60 C10 80, 30 95, 50 95 C70 95, 90 80, 90 60 C90 40, 70 20, 50 5 Z" fill="#A8C4A0"/>
+        {/* bottom clusters */}
+        <svg className="absolute bottom-[18%] left-[8%] w-10 h-10 opacity-20 animate-float" style={{ animationDelay: '3s' }} viewBox="0 0 100 100">
+          <path d="M50 5 C30 20,10 40,10 60 C10 80,30 95,50 95 C70 95,90 80,90 60 C90 40,70 20,50 5Z" fill="#D8A7B4"/>
         </svg>
-        <svg className="absolute top-[60%] right-[5%] w-14 h-14 opacity-20 animate-float" style={{ animationDelay: '2.5s' }} viewBox="0 0 100 100">
-          <path d="M50 5 C30 20, 10 40, 10 60 C10 80, 30 95, 50 95 C70 95, 90 80, 90 60 C90 40, 70 20, 50 5 Z" fill="#D8A7B4"/>
+        <svg className="absolute bottom-[10%] right-[10%] w-12 h-12 opacity-15 animate-float" style={{ animationDelay: '1.2s' }} viewBox="0 0 100 100">
+          <path d="M50 5 C30 20,10 40,10 60 C10 80,30 95,50 95 C70 95,90 80,90 60 C90 40,70 20,50 5Z" fill="#A8C4A0"/>
         </svg>
       </div>
 
-      {/* Content */}
-      <div 
-        ref={contentRef}
-        className="absolute inset-0 flex flex-col items-center justify-center px-4"
-        style={{ perspective: '1000px' }}
-      >
-        <div className="text-center max-w-2xl mx-auto">
-          <h2 className="headline animate-item font-serif text-[clamp(40px,8vw,72px)] text-wedding-text leading-[0.95] mb-6">
-            Share Your Moments
-          </h2>
-          
-          <p className="subheadline animate-item font-sans text-wedding-muted text-lg sm:text-xl mb-10 max-w-lg mx-auto">
-            Upload photos from the day and help us capture every precious moment!
+      {/* ── Central glass card ───────────────────────────────────────────── */}
+      <div className="absolute inset-0 flex items-center justify-center px-4">
+        <div
+          ref={cardRef}
+          className="relative w-full max-w-md rounded-[2rem] px-8 py-10 sm:px-12 sm:py-12 text-center"
+          style={{
+            background: 'rgba(255, 255, 255, 0.07)',
+            backdropFilter: 'blur(28px)',
+            WebkitBackdropFilter: 'blur(28px)',
+            border: '1px solid rgba(255, 255, 255, 0.13)',
+            boxShadow: '0 40px 90px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12)',
+          }}
+        >
+          {/* Eyebrow */}
+          <span
+            ref={eyebrowRef}
+            className="inline-flex items-center gap-3 font-sans text-[10px] tracking-[0.28em] uppercase mb-7"
+            style={{ color: 'rgba(216,167,180,0.85)' }}
+          >
+            <span className="block w-8 h-px" style={{ background: 'rgba(216,167,180,0.5)' }} />
+            30 May 2026
+            <span className="block w-8 h-px" style={{ background: 'rgba(216,167,180,0.5)' }} />
+          </span>
+
+          {/* Headline */}
+          <h1
+            ref={headlineRef}
+            className="font-serif text-white leading-[1.0] mb-5"
+            style={{ fontSize: 'clamp(38px, 7vw, 62px)' }}
+          >
+            Share Your<br />Moments
+          </h1>
+
+          {/* Body */}
+          <p
+            ref={bodyRef}
+            className="font-sans text-sm sm:text-base leading-relaxed mb-9 mx-auto max-w-[280px]"
+            style={{ color: 'rgba(255,255,255,0.55)' }}
+          >
+            Upload your favourite photos from the day and help us remember every beautiful moment.
           </p>
 
-          <div className="cta-button animate-item">
-            <Button 
+          {/* CTA button */}
+          <div ref={btnWrapRef}>
+            <button
               onClick={() => setIsDialogOpen(true)}
-              className="btn-wedding text-base px-10 py-4 h-auto"
+              className="group inline-flex items-center gap-3 rounded-full font-sans text-sm font-medium text-white transition-all duration-300 hover:scale-[1.04] hover:shadow-2xl active:scale-[0.98]"
+              style={{
+                padding: '14px 36px',
+                background: 'linear-gradient(135deg, rgba(216,167,180,0.95) 0%, rgba(196,140,158,0.90) 100%)',
+                boxShadow: '0 6px 28px rgba(216,167,180,0.35)',
+              }}
             >
-              <Upload className="w-5 h-5 mr-2" />
+              <Upload className="w-4 h-4 transition-transform duration-300 group-hover:-translate-y-0.5" />
               Upload Photos
-            </Button>
+            </button>
+
+            {!isDriveConfigured && (
+              <p className="mt-5 font-sans text-xs" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                Photo uploads will be available soon.
+              </p>
+            )}
           </div>
 
-          {!isDriveConfigured && (
-            <div className="animate-item mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200 max-w-md mx-auto">
-              <p className="font-sans text-sm text-amber-800">
-                <AlertCircle className="w-4 h-4 inline mr-1" />
-                Photo uploads will be available once the couple sets up Google Drive.
+          {/* Recently uploaded strip */}
+          {photos.length > 0 && (
+            <div className="mt-9 pt-8 border-t" style={{ borderColor: 'rgba(255,255,255,0.10)' }}>
+              <p className="font-sans text-[10px] tracking-[0.22em] uppercase mb-4" style={{ color: 'rgba(255,255,255,0.35)' }}>
+                Recently Shared
               </p>
+              <div className="flex justify-center gap-2">
+                {photos.slice(0, 5).map(photo => (
+                  <div
+                    key={photo.id}
+                    className="w-12 h-12 rounded-xl overflow-hidden"
+                    style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.15)' }}
+                  >
+                    <img
+                      src={photo.thumbnailUrl}
+                      alt={`Photo by ${photo.guestName}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Recently uploaded preview */}
-        {photos.length > 0 && (
-          <div className="animate-item mt-12 w-full max-w-3xl">
-            <p className="text-center font-sans text-xs tracking-[0.18em] uppercase text-wedding-muted mb-4">
-              Recently Shared
-            </p>
-            <div className="flex justify-center gap-3 flex-wrap">
-              {photos.slice(0, 5).map((photo) => (
-                <div 
-                  key={photo.id}
-                  className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 border-wedding-accent/20"
-                >
-                  <img 
-                    src={photo.thumbnailUrl} 
-                    alt={`Photo by ${photo.guestName}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Upload Dialog */}
-      <Dialog 
-        open={isDialogOpen} 
-        onOpenChange={(open) => {
-          setIsDialogOpen(open);
-          if (!open) clearDialog();
-        }}
+      {/* ── Bottom signature ─────────────────────────────────────────────── */}
+      <div className="absolute bottom-7 left-1/2 -translate-x-1/2">
+        <p className="font-serif text-sm italic" style={{ color: 'rgba(255,255,255,0.22)' }}>
+          Jaryd <span style={{ color: 'rgba(216,167,180,0.5)' }}>&</span> Sarita
+        </p>
+      </div>
+
+      {/* ── Upload Dialog ────────────────────────────────────────────────── */}
+      <Dialog
+        open={isDialogOpen}
+        onOpenChange={open => { setIsDialogOpen(open); if (!open) clearDialog(); }}
       >
-        <DialogContent className="sm:max-w-md bg-wedding-bg border-wedding-accent/20 max-h-[90vh] overflow-y-auto">
+        <DialogContent
+          className="sm:max-w-md max-h-[90vh] overflow-y-auto rounded-3xl border-0"
+          style={{
+            background: 'rgba(20, 13, 10, 0.97)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            border: '1px solid rgba(216,167,180,0.18)',
+            boxShadow: '0 40px 100px rgba(0,0,0,0.6)',
+          }}
+        >
           <DialogHeader>
-            <DialogTitle className="font-serif text-2xl text-wedding-text text-center">
+            <DialogTitle className="font-serif text-2xl text-center" style={{ color: 'rgba(255,255,255,0.92)' }}>
               Share Your Photos
             </DialogTitle>
           </DialogHeader>
-          
-          <div className="space-y-6 py-4">
-            {/* Status Message */}
+
+          <div className="space-y-5 py-4">
+            {/* Status */}
             {uploadStatus.type && (
-              <div className={`p-3 rounded-lg flex items-center gap-2 ${
-                uploadStatus.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+              <div className={`p-3 rounded-2xl flex items-center gap-2 text-sm font-sans ${
+                uploadStatus.type === 'success'
+                  ? 'bg-green-900/40 text-green-300 border border-green-700/40'
+                  : 'bg-red-900/40 text-red-300 border border-red-700/40'
               }`}>
-                {uploadStatus.type === 'success' ? (
-                  <CheckCircle className="w-5 h-5" />
-                ) : (
-                  <AlertCircle className="w-5 h-5" />
-                )}
-                <span className="font-sans text-sm">{uploadStatus.message}</span>
+                {uploadStatus.type === 'success'
+                  ? <CheckCircle className="w-4 h-4 shrink-0" />
+                  : <AlertCircle className="w-4 h-4 shrink-0" />}
+                {uploadStatus.message}
               </div>
             )}
 
-            {/* Name Input */}
+            {/* Name */}
             <div>
-              <label className="block font-sans text-sm text-wedding-muted mb-2">
-                <User className="w-4 h-4 inline mr-1" />
+              <label className="flex items-center gap-1.5 font-sans text-xs tracking-wide mb-2" style={{ color: 'rgba(255,255,255,0.50)' }}>
+                <User className="w-3.5 h-3.5" />
                 Your Name
               </label>
-              <Input
+              <input
                 value={guestName}
-                onChange={(e) => setGuestName(e.target.value)}
+                onChange={e => setGuestName(e.target.value)}
                 placeholder="Enter your name"
-                className="input-wedding"
+                className="w-full px-4 py-3 rounded-xl text-sm font-sans outline-none transition-all duration-200"
+                style={{
+                  background: 'rgba(255,255,255,0.07)',
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'rgba(255,255,255,0.90)',
+                }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'rgba(216,167,180,0.50)'; e.currentTarget.style.background = 'rgba(255,255,255,0.10)'; }}
+                onBlur={e =>  { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.12)'; e.currentTarget.style.background = 'rgba(255,255,255,0.07)'; }}
               />
             </div>
 
-            {/* File Upload */}
+            {/* File select */}
             <div>
-              <label className="block font-sans text-sm text-wedding-muted mb-2">
-                <ImageIcon className="w-4 h-4 inline mr-1" />
+              <label className="flex items-center gap-1.5 font-sans text-xs tracking-wide mb-2" style={{ color: 'rgba(255,255,255,0.50)' }}>
+                <ImageIcon className="w-3.5 h-3.5" />
                 Select Photos (max 5)
               </label>
-              <div className="relative">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  id="photo-upload-input"
-                  disabled={!isDriveConfigured}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors ${
-                    isDriveConfigured
-                      ? 'bg-wedding-accent text-white hover:bg-wedding-accent/90'
-                      : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                  }`}
-                  disabled={!isDriveConfigured}
-                >
-                  <Upload className="w-5 h-5" />
-                  Select Photos
-                </button>
-                <p className="mt-3 text-xs text-wedding-muted/80">
-                  {isDriveConfigured
-                    ? 'Choose up to 5 images from your device.'
-                    : 'Uploads are unavailable until Google Drive is configured.'}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileSelect}
+                className="hidden"
+                disabled={!isDriveConfigured}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!isDriveConfigured}
+                className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-sans font-medium transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background: isDriveConfigured ? 'rgba(216,167,180,0.15)' : 'rgba(255,255,255,0.05)',
+                  border: `1px solid ${isDriveConfigured ? 'rgba(216,167,180,0.35)' : 'rgba(255,255,255,0.10)'}`,
+                  color: isDriveConfigured ? 'rgba(216,167,180,0.95)' : 'rgba(255,255,255,0.35)',
+                }}
+              >
+                <Upload className="w-4 h-4" />
+                {isDriveConfigured ? 'Choose Photos' : 'Uploads unavailable'}
+              </button>
+              {isDriveConfigured && (
+                <p className="mt-2 text-xs font-sans" style={{ color: 'rgba(255,255,255,0.30)' }}>
+                  Up to 5 images from your device.
                 </p>
-              </div>
+              )}
             </div>
 
             {/* Preview */}
             {previewUrls.length > 0 && (
               <div>
-                <label className="block font-sans text-sm text-wedding-muted mb-2">
+                <p className="font-sans text-xs mb-2" style={{ color: 'rgba(255,255,255,0.40)' }}>
                   Selected ({previewUrls.length})
-                </label>
-                <div className="flex gap-2 flex-wrap max-h-32 overflow-y-auto">
-                  {previewUrls.map((url, index) => (
-                    <div key={index} className="relative w-16 h-16">
-                      <img 
-                        src={url} 
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-full object-cover rounded-lg"
-                      />
+                </p>
+                <div className="flex gap-2 flex-wrap max-h-36 overflow-y-auto">
+                  {previewUrls.map((url, i) => (
+                    <div key={i} className="relative w-16 h-16">
+                      <img src={url} alt="" className="w-full h-full object-cover rounded-xl" />
                       <button
-                        onClick={() => removeFile(index)}
-                        className="absolute -top-1 -right-1 w-5 h-5 bg-wedding-text rounded-full flex items-center justify-center"
+                        onClick={() => removeFile(i)}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white transition-colors"
+                        style={{ background: 'rgba(216,167,180,0.9)' }}
                       >
-                        <X className="w-3 h-3 text-white" />
+                        <X className="w-3 h-3" />
                       </button>
                     </div>
                   ))}
@@ -404,24 +426,28 @@ export default function PhotoUpload() {
               </div>
             )}
 
-            {/* Upload Button */}
-            <Button
+            {/* Upload button */}
+            <button
               onClick={handleUpload}
               disabled={!guestName.trim() || selectedFiles.length === 0 || isUploading || !isDriveConfigured}
-              className="w-full btn-wedding disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-3.5 text-sm font-sans font-medium text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed hover:opacity-90"
+              style={{
+                background: 'linear-gradient(135deg, rgba(216,167,180,0.95) 0%, rgba(196,140,158,0.90) 100%)',
+                boxShadow: '0 4px 20px rgba(216,167,180,0.25)',
+              }}
             >
               {isUploading ? (
                 <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" />
-                  Uploading...
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Uploading…
                 </>
               ) : (
                 <>
-                  <Upload className="w-5 h-5 mr-2" />
+                  <Upload className="w-4 h-4" />
                   Upload {selectedFiles.length > 0 && `(${selectedFiles.length})`}
                 </>
               )}
-            </Button>
+            </button>
           </div>
         </DialogContent>
       </Dialog>

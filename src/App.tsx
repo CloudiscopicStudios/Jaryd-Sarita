@@ -1,28 +1,12 @@
-import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 import Navigation from './sections/Navigation';
-import Hero from './sections/Hero';
-import Story from './sections/Story';
-import Timeline from './sections/Timeline';
 import PhotoUpload from './sections/PhotoUpload';
-import Gallery from './sections/Gallery';
-import Closing from './sections/Closing';
 import Admin from './pages/Admin';
 
 import './App.css';
 
-gsap.registerPlugin(ScrollTrigger);
-
 function MainContent() {
-  // Cleanup all ScrollTriggers on unmount
-  useEffect(() => {
-    return () => {
-      ScrollTrigger.getAll().forEach(st => st.kill());
-    };
-  }, []);
 
   return (
     <div className="relative min-h-screen bg-wedding-bg">
@@ -57,12 +41,7 @@ function MainContent() {
 
       {/* Main Content */}
       <main className="relative z-10">
-        <Hero />
-        <Story />
-        <Timeline />
         <PhotoUpload />
-        <Gallery />
-        <Closing />
       </main>
     </div>
   );
