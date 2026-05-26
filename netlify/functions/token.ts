@@ -1,28 +1,27 @@
-import type { Handler } from "@netlify/functions";
+import type { Context } from "@netlify/functions";
 import { getStore } from "@netlify/blobs";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
-  "Content-Type": "application/json",
 };
 
-export const handler: Handler = async (event) => {
-  if (event.httpMethod === "OPTIONS") {
-    return { statusCode: 204, headers: CORS, body: "" };
-  }
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: new Headers({ ...CORS, "Content-Type": "application/json" }),
+  });
+
+export default async (req: Request, _ctx: Context): Promise<Response> => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: new Headers(CORS) });
 
   try {
     const store = getStore("auth");
     const refreshToken = await store.get("refresh_token");
 
     if (!refreshToken) {
-      return {
-        statusCode: 401,
-        headers: CORS,
-        body: JSON.stringify({ error: "Drive not configured yet" }),
-      };
+      return json({ error: "Drive not configured yet" }, 401);
     }
 
     const r = await fetch("https://oauth2.googleapis.com/token", {
@@ -38,28 +37,16 @@ export const handler: Handler = async (event) => {
 
     const data = (await r.json()) as Record<string, unknown>;
     if (!r.ok) {
-      return {
-        statusCode: 400,
-        headers: CORS,
-        body: JSON.stringify({ error: data.error_description ?? "Token refresh failed" }),
-      };
+      return json({ error: data.error_description ?? "Token refresh failed" }, 400);
     }
 
     const folderId = await store.get("folder_id");
-    return {
-      statusCode: 200,
-      headers: CORS,
-      body: JSON.stringify({
-        access_token: data.access_token,
-        expires_in: data.expires_in,
-        folderId: folderId ?? null,
-      }),
-    };
+    return json({
+      access_token: data.access_token,
+      expires_in: data.expires_in,
+      folderId: folderId ?? null,
+    });
   } catch (err: any) {
-    return {
-      statusCode: 500,
-      headers: CORS,
-      body: JSON.stringify({ error: err.message ?? "Internal error" }),
-    };
+    return json({ error: err.message ?? "Internal error" }, 500);
   }
 };
