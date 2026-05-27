@@ -8,7 +8,8 @@
       "Bash(node_modules/.bin/vite build *)",
       "WebFetch(domain:lense.app)",
       "Bash(npm install *)",
-      "Bash(Remove-Item \"C:\\\\Users\\\\Jaryd-PC\\\\source\\\\Jaryd-Sarita\\\\netlify\\\\functions\\\\*.mts\")"
+      "Bash(Remove-Item \"C:\\\\Users\\\\Jaryd-PC\\\\source\\\\Jaryd-Sarita\\\\netlify\\\\functions\\\\*.mts\")",
+      "Bash(cp \"C:\\\\Users\\\\Jaryd-PC\\\\Downloads\\\\vecteezy_red-roses-hand-drawn-color-set-black-line-rose-flowers_35386664.svg\" \"C:\\\\Users\\\\Jaryd-PC\\\\source\\\\Jaryd-Sarita\\\\public\\\\images\\\\roses.svg\" && echo \"Copied\")"
     ]
   }
 }
