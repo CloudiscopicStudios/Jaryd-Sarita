@@ -132,7 +132,7 @@ export default function PhotoUpload() {
   }, []);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []).slice(0, 5);
+    const files = Array.from(e.target.files || []).slice(0, 20);
     if (!files.length) return;
     setSelectedFiles(files);
     setPreviewUrls(files.map(f => URL.createObjectURL(f)));
@@ -412,7 +412,7 @@ export default function PhotoUpload() {
                 style={{ color: 'rgba(74,58,48,0.65)' }}
               >
                 <ImageIcon className="w-3.5 h-3.5" />
-                Select Photos (max 5)
+                Select Photos (max 20)
               </label>
               <input
                 ref={fileInputRef}
